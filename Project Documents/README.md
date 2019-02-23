@@ -1,7 +1,14 @@
-**This document summarizes roughly the steps I will or have taken**
+**This document briefs roughly the steps I will or have taken**
 
-1. Understand the business understanding/problem statement.
-2. Start with data understanding - This will be done in a python notebook.
-3. Start with simple modeling to determine how the results will look like.
+- Understand the business understanding/problem statement.
+- Install SQLite and dump csv files in it to access the files in notebook.
+- Start with data understanding - This will be done in a python notebook.
+- Start with simple modeling to determine how the results will look like.
+
+
+1. Business Understanding/ Problem statement:
+<br>The data about the users assessments, courses, and users is present. The project will aim at finsing the similar users based on a scoring factor. <br>The results has to be accessible via RESTful API. The endpoint should take use id as input and return a summary of most similar users.<br> Think of using a backend data storage as SQLlite or PostgreSQL.
+
+2.
 
 ...Steps will be added as I move through the project.
