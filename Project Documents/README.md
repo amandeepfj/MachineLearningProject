@@ -7,8 +7,10 @@
 - Deploy the model and expose the results RESTful API.
 
 1. Business Understanding/ Problem statement:
-<br>The data about the users assessments, courses, and users is present. The project will aim at finsing the similar users based on a scoring factor. <br>The results has to be accessible via RESTful API. The endpoint should take use id as input and return a summary of most similar users.<br> Think of using a backend data storage as SQLlite or PostgreSQL.
+<br>The data about the users assessments, courses, and users is present. The project will aim at finding the similar users based on a scoring factor. 
+<br>The results has to be accessible via RESTful API. The endpoint should take use id as input and return a summary of most similar users.
+<br> We are using SQLlite as backend.
 
-2.
+2. Data Understanding
 
 ...Steps will be added as I move through the project.
