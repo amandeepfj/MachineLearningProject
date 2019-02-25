@@ -5,6 +5,7 @@
 from flask import Flask, request, jsonify
 import pickle
 import traceback
+from  model_training import SimiliarUsers
 
 app = Flask(__name__)
 
@@ -30,4 +31,4 @@ if __name__ == '__main__':
     # Load the model
     similar_users_model = pickle.load(open('model.pkl', 'rb'))
     print("Model Loaded!!")
-    app.run(port=5000, debug=True)
+    app.run(port=4444, debug=True)

@@ -6,6 +6,7 @@ Data I might need -
 Improvements -
 - Manage dependencies properly.
 
+Visual C++ compiler for python27 is required to install some of the dependencies
 
 References:
 https://research.fb.com/fast-randomized-svd/
