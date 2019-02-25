@@ -1,0 +1,24 @@
+Data I might need -
+- Relation between the tags? (tag closeness metric)
+- Search queries from the users?
+- When did the user watch the video?
+
+Improvements -
+- Manage dependencies properly.
+
+
+References:
+https://research.fb.com/fast-randomized-svd/
+https://surprise.readthedocs.io/en/stable/index.html
+https://alyssaq.github.io/2015/20150426-simple-movie-recommender-using-svd/
+https://surprise.readthedocs.io/en/stable/knn_inspired.html?highlight=knn#k-nn-inspired-algorithms
+https://surprise.readthedocs.io/en/stable/matrix_factorization.html
+https://databricks-prod-cloudfront.cloud.databricks.com/public/4027ec902e239c93eaaa8714f173bcfc/2799933550853697/2823893187441173/2202577924924539/latest.html
+https://www.kaggle.com/rounakbanik/movie-recommender-systems
+http://nicolas-hug.com/blog/matrix_facto_3
+https://hackernoon.com/introduction-to-recommender-system-part-1-collaborative-filtering-singular-value-decomposition-44c9659c5e75
+https://towardsdatascience.com/building-and-testing-recommender-systems-with-surprise-step-by-step-d4ba702ef80b
+https://github.com/NicolasHug/Surprise
+https://deepgraph.readthedocs.io/en/latest/tutorials/pairwise_correlations.html
+https://www.datacamp.com/community/tutorials/machine-learning-models-api-python
+https://machinelearningmastery.com/deploy-machine-learning-model-to-production/
