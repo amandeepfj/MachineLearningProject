@@ -6,6 +6,6 @@ url = 'http://localhost:4444/get_similar_users'
 r = requests.post(url, json={'user_handle': '2'})
 print(r.json())
 
-ngrok_url = 'https://fecc93fc.ngrok.io/get_similar_users'
+ngrok_url = 'http://ed842e94.ngrok.io/get_similar_users'
 r = requests.post(ngrok_url, json={'user_handle': '2'})
 print(r.json())
