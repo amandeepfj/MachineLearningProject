@@ -1,7 +1,6 @@
 # Created by Amandeep at 2/25/2019
 # "We are drowning in information, while starving for wisdom - E. O. Wilson"
 
-# Read data from sqllite database which has all the csv files dumped earlier.
 import sqlite3
 import pandas as pd
 import numpy as np
@@ -11,13 +10,14 @@ from scipy import sparse
 from sklearn.metrics.pairwise import cosine_similarity
 from surprise import Dataset
 import pickle
+import json
 
 conn = sqlite3.connect("C:\Users\Amandeep\pluralsight.db")
 
-user_assessment_scores = pd.read_sql_query("select * from user_assessment_scores limit 1000;", conn)
-user_course_views = pd.read_sql_query("select * from user_course_views limit 1000;", conn)
-course_tags = pd.read_sql_query("select * from course_tags limit 1000;", conn)
-user_interests = pd.read_sql_query("select * from user_interests limit 1000;", conn)
+user_assessment_scores = pd.read_sql_query("select * from user_assessment_scores;", conn)
+user_course_views = pd.read_sql_query("select * from user_course_views;", conn)
+course_tags = pd.read_sql_query("select * from course_tags;", conn)
+user_interests = pd.read_sql_query("select * from user_interests;", conn)
 
 # Close connection of sqlite. Always remember to close the connection!
 conn.close()
@@ -52,7 +52,10 @@ TOP_CUTOFF_USERS = 10
 
 # Class for similarity measure.
 class SimilarityMeasure:
+    """The similarity measure class finds different types of similarities"""
+
     def __initialize_matrix(self):
+        """Initialize the association matrices"""
         if self.__values_column is None:
             self.__dataframe['temp_val'] = 1
             self.__values_column = 'temp_val'
@@ -69,11 +72,14 @@ class SimilarityMeasure:
         self.__knn_algo = None
 
     def calculate_pearson_similarity(self):
+        """This method will calculate the pearson similarity, the perason
+        similarity is time consuming hence we will not calculate it for all the similarity types
+        This needs to be parallelized."""
         self.pearson_similarity_martix = self.__scores_matrix.T.corr(method='pearson')
         print("Pearson similarity calculated!")
 
-    # Function that taken in user handle as input and outputs most similar users based on pearson.
     def get_pearson_similar_users(self, user_handle, num_similar_users=TOP_CUTOFF_USERS):
+        """This method calaculates pearson similarity of users"""
         if not self.isValidUser(user_handle):
             print("Error - User not found!!")
             return None
@@ -82,20 +88,22 @@ class SimilarityMeasure:
             user_handle_scores.columns = [0]
             similar_users = user_handle_scores.sort_values(by=[0], ascending=False)[1:num_similar_users]
             # Normalize between 0 to 1
-            similar_users[0] = (similar_users[0] - min(similar_users[0])) / (
-                    max(similar_users[0]) - min(similar_users[0]))
+            # similar_users[0] = (similar_users[0] - min(similar_users[0])) / (
+            #       max(similar_users[0]) - min(similar_users[0]))
             return similar_users
         else:
             print("Error - Pearson similarity not calculated!!!!")
 
     # Function to calculate cosine similarity.
     def calculate_cosine_similarity(self):
+        """Calculates the cosine similarity"""
         A_sparse = sparse.csr_matrix(self.__reindexed_scores_matrix)
         self.cosine_similarities_matrix = cosine_similarity(A_sparse, dense_output=False)
         print("Cosine similarity calculated!")
 
     # Function that taken in user handle as input and outputs most similar users based on pearson.
     def get_cosine_similar_users(self, user_handle, num_similar_users=TOP_CUTOFF_USERS):
+        """Returns cosine similarity for the user handle"""
         if not self.isValidUser(user_handle):
             print("Error - User not found!!")
             return None
@@ -111,6 +119,7 @@ class SimilarityMeasure:
             print("Error - Cosine similarity not caclculated!!!!")
 
     def calculate_svd_similarity(self, full_matrix=False, dim_size=20):
+        """Calculates Single Value Decomposition similarity"""
         scores_mean = np.asarray([(np.mean(self.__reindexed_scores_matrix, 1))]).T
         normalised_mat = self.__reindexed_scores_matrix - scores_mean
         A = normalised_mat.T
@@ -124,6 +133,7 @@ class SimilarityMeasure:
         print("SVD similarity calculated!")
 
     def get_svd_similar_users(self, user_handle, num_similar_users=TOP_CUTOFF_USERS):
+        """Returns SVD similairty for the user"""
         if not self.isValidUser(user_handle):
             print("Error - User not found!!")
             return None
@@ -141,6 +151,7 @@ class SimilarityMeasure:
 
     # Function that taken in user handle as input and outputs most similar users based on pearson.
     def train_KNN_BaseLine(self):
+        """Train the model for KNN Baseline using pearson_baseline similarity measure"""
         reader = Reader(rating_scale=(self.__dataframe[self.__values_column].min(),
                                       self.__dataframe[self.__values_column].max()))
         data = Dataset.load_from_df(self.__dataframe[[self.__index_column, self.__columns_column,
@@ -151,6 +162,7 @@ class SimilarityMeasure:
         self.__knn_algo.fit(data.build_full_trainset())
 
     def get_KNN_similar_users(self, user_handle, num_similar_users=TOP_CUTOFF_USERS):
+        """Finds KNN similarity for users"""
         if not self.isValidUser(user_handle):
             print("Error - User not found!!")
             return None
@@ -167,6 +179,7 @@ class SimilarityMeasure:
             print("Error - KNN Similarity not calculated!!!!")
 
     def isValidUser(self, user_handle):
+        """Checks if the user is valid"""
         return ((self.index_values == user_handle).sum() > 0)
 
     def __init__(self, parameters):
@@ -243,10 +256,12 @@ user_course_level_similarity_measure.train_KNN_BaseLine()
 
 
 class SimiliarUsers:
-    """A warpper for the model that we will pickle and use for prediction"""
+    """A warpper for the model that we will pickle and use for prediction, this basically is a type of emsemble
+    method to aggregate different similarities to come up with a single similarity score."""
 
     def get_merged_scores(self, cosine_similarity, svd_similarity, pearson_similarity, knn_similarity, score_type,
                           weight):
+        """Returns merged scores for all the similarities calculated."""
         svd_similarity = pd.DataFrame(svd_similarity).reset_index()
         svd_similarity.columns = ['index', 'svd_' + score_type]
         cosine_similarity = pd.DataFrame(cosine_similarity).reset_index()
@@ -264,6 +279,7 @@ class SimiliarUsers:
         return merged
 
     def get_assessment_similarity(self, user_handle):
+        """Returns similarity based on assessment the user has received."""
         if user_assessment_similarity_measure.isValidUser(user_handle):
             cosine_similarity = self.user_assessment_similarity_measure.get_cosine_similar_users(user_handle,
                                                                                                  self.N_USERS_TO_COMPARE)
@@ -279,6 +295,7 @@ class SimiliarUsers:
             return None
 
     def get_interest_similarity(self, user_handle):
+        """Returns similarity based on interest the users have"""
         if user_interest_similarity_measure.isValidUser(user_handle):
             cosine_similarity = self.user_interest_similarity_measure.get_cosine_similar_users(user_handle,
                                                                                                self.N_USERS_TO_COMPARE)
@@ -294,6 +311,7 @@ class SimiliarUsers:
             return None
 
     def get_course_tag_similarity(self, user_handle):
+        """Returns similarity based on types of courses taken"""
         if user_courseview_tag_similarity_measure.isValidUser(user_handle):
             cosine_similarity = self.user_courseview_tag_similarity_measure.get_cosine_similar_users(user_handle,
                                                                                                      self.N_USERS_TO_COMPARE)
@@ -309,6 +327,7 @@ class SimiliarUsers:
             return None
 
     def get_course_view_similarity(self, user_handle):
+        """Returns similarity measures of course view"""
         if user_courseview_similarity_measure.isValidUser(user_handle):
             cosine_similarity = self.user_courseview_similarity_measure.get_cosine_similar_users(user_handle,
                                                                                                  self.N_USERS_TO_COMPARE)
@@ -324,6 +343,7 @@ class SimiliarUsers:
             return None
 
     def get_course_level_similarity(self, user_handle):
+        """Returns similarity based on level of courses taken"""
         if user_course_level_similarity_measure.isValidUser(user_handle):
             cosine_similarity = self.user_course_level_similarity_measure.get_cosine_similar_users(user_handle,
                                                                                                    self.N_USERS_TO_COMPARE)
@@ -339,20 +359,26 @@ class SimiliarUsers:
             return None
 
     def calculate_total_score(self, merged_similarity):
+        """calculates total score after merging all the similarities."""
         total_columns = [s for s in merged_similarity.columns if 'AVG' in s]
         print(self.score_weights)
         merged_similarity['AVG_OF_ALL'] = merged_similarity[total_columns].sum(axis=1) / sum(
             self.score_weights.values())
+        merged_similarity['AVG_OF_ALL'] = (merged_similarity['AVG_OF_ALL'] - min(merged_similarity['AVG_OF_ALL'])) / (
+                max(merged_similarity['AVG_OF_ALL']) - min(merged_similarity['AVG_OF_ALL']))
         merged_similarity = merged_similarity.sort_values(by=['AVG_OF_ALL'], ascending=False)
         return merged_similarity
 
     def set_score_weights(self, new_weights):
+        """sets the scores weights we want to give to each tag."""
         if new_weights is not None:
             self.score_weights = new_weights
         else:
             print("Invalid weights passed!!!!")
 
-    def get_similar_users(self, user_handle):
+    def get_similar_users(self, user_handle, bSummary=False, n_top=2):
+        """Returns similar user for user handle sent. If bSummary = True, then returns summary JSON else returns just
+        list of the users"""
         # store old weight because the weights dictionary will change if any score not present.
         temp_weights = self.score_weights.copy()
         merged_similarity = None
@@ -387,13 +413,57 @@ class SimiliarUsers:
         else:
             del self.score_weights['CL']
 
+        retVal = None
         if merged_similarity is not None:
             merged_similarity = self.calculate_total_score(merged_similarity)
             merged_similarity = merged_similarity.rename(index=str, columns={"index": "user_handle"})
-
+            self.similar_users_df = merged_similarity
+            if bSummary:
+                retVal = self.get_summary_result(user_handle, n_top)
+            else:
+                retVal = merged_similarity['user_handle'][0:min(n_top, merged_similarity.shape[0])].values
+                retVal = json.dumps(list(retVal))
         # set the weight back to original
         self.score_weights = temp_weights
-        return merged_similarity
+        return retVal
+
+    def get_summary_result(self, current_user, n_top):
+        """returns the summary results of top 'n' similar user for the current_user handle """
+        sim_users_dict = {
+            '__weights_used': self.score_weights,
+            'current_user_handle': current_user, 'current_user_summary': self.get_user_summary(current_user)
+        }
+        total_columns = [s for s in self.similar_users_df.columns if 'AVG' in s]
+        for i in range(0, min(n_top, self.similar_users_df.shape[0])):
+            temp_user_handle = self.similar_users_df.iloc[i, :]['user_handle']
+            sim_users_dict['user_' + str(i)] = {'handle': temp_user_handle,
+                                                'scores': self.similar_users_df[total_columns].iloc[i, :],
+                                                'summary': self.get_user_summary(temp_user_handle)}
+        return sim_users_dict
+
+    def get_user_summary(self, ip_user_handle):
+        """returns the summary for ip_user_handle"""
+        rows = user_assessment_scores[user_assessment_scores['user_handle'] == ip_user_handle].index.values
+        assessment_dict = {'assessments': [], 'interest': [], 'courses_taken': []}
+        for row_index in rows:
+            temp = {user_assessment_scores.iloc[row_index, 1]: {
+                'date': user_assessment_scores.iloc[row_index, 2],
+                'score': user_assessment_scores.iloc[row_index, 3]}}
+            assessment_dict['assessments'].append(temp)
+
+        rows = user_interests[user_interests['user_handle'] == ip_user_handle].index.values
+        for row_index in rows:
+            temp = {user_interests.iloc[row_index, 1]: {
+                'date_followed': user_interests.iloc[row_index, 2]}}
+            assessment_dict['interest'].append(temp)
+
+        rows = user_course_views[user_course_views['user_handle'] == ip_user_handle].index.values
+        for row_index in rows:
+            temp = {user_course_views.iloc[row_index, 2]: {
+                'level': user_course_views.iloc[row_index, 4],
+                'view_time_seconds': user_course_views.iloc[row_index, 5]}}
+            assessment_dict['courses_taken'].append(temp)
+        return assessment_dict
 
     def __init__(self, parameters):
         self.user_assessment_similarity_measure = parameters['user_assessment_similarity_measure']
@@ -418,10 +488,11 @@ similarity_measures = {
     'user_course_level_similarity_measure': user_course_level_similarity_measure,
     'score_weights': {'A': 1, 'I': 1, 'CVT': 1, 'CV': 1, 'CL': 1}
 }
+
 similar_users_model = SimiliarUsers(similarity_measures)
 similar_users_model.set_score_weights({'A': 1, 'I': 1, 'CVT': 2, 'CV': 1, 'CL': 1})
-similar_users_df = similar_users_model.get_similar_users('1')
-print(similar_users_df.head(5))
+retVlaue = similar_users_model.get_similar_users('1')
+print(retVlaue)
 print("Again.............................")
 
 pickle.dump(similar_users_model, open('model.pkl', 'wb'))

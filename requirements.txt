@@ -6,3 +6,4 @@ pandas==0.24.1
 numpy==1.16.0
 scikit_learn==0.20.2
 surprise==0.1
+
